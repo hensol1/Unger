@@ -1,621 +1,201 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ron Unger - Defensive Performance Analysis</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>Defense Stats Interactive Chart</title>
+    <!-- Include Plotly.js library for interactive charts:contentReference[oaicite:1]{index=1} -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        * {
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        .container {
+            max-width: 960px;
+            margin: auto;
             padding: 20px;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 30px;
+        h1, h2 {
             text-align: center;
-            position: relative;
-            overflow: hidden;
+            color: #2c3e50;
         }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: pulse 4s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        
-        .header-content {
-            position: relative;
-            z-index: 2;
-        }
-        
-        .player-name {
-            font-size: 2.5rem;
-            font-weight: 700;
+        #controls {
+            text-align: center;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        
-        .player-info {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 20px;
+        select {
+            margin: 0 10px;
+            padding: 5px 10px;
+            font-size: 16px;
         }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 20px;
+        #chart {
+            width: 100%;
+            height: 600px;
+        }
+        #info {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 10px;
+        }
+        #info h3 {
+            margin-top: 0;
+        }
+        #ron-insights {
+            background: #eef;
+            border-radius: 5px;
+            padding: 15px;
             margin-top: 20px;
         }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 15px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            display: block;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 5px;
-        }
-        
-        .content {
-            padding: 40px;
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 30px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 5px;
-            gap: 5px;
-        }
-        
-        .tab {
-            flex: 1;
-            padding: 15px 20px;
-            border: none;
-            background: transparent;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            color: #6c757d;
-        }
-        
-        .tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .tab:hover:not(.active) {
-            background: #e9ecef;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .performance-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .performance-card {
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }
-        
-        .performance-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .strengths {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            border-left: 5px solid #10b981;
-        }
-        
-        .weaknesses {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-            border-left: 5px solid #ef4444;
-        }
-        
-        .performance-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .performance-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 12px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .performance-item:hover {
-            background: rgba(255, 255, 255, 0.9);
-            transform: translateX(5px);
-        }
-        
-        .icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            flex-shrink: 0;
-        }
-        
-        .icon.positive { background: #10b981; }
-        .icon.negative { background: #ef4444; }
-        .icon.neutral { background: #f59e0b; }
-        
-        .performance-text {
-            flex: 1;
-        }
-        
-        .performance-metric {
-            font-weight: 600;
-            color: #1f2937;
-        }
-        
-        .performance-value {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin-top: 2px;
-        }
-        
-        .chart-container {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-        
-        .chart-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-align: center;
-            color: #1f2937;
-        }
-        
-        .insights {
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-            padding: 30px;
-            border-radius: 20px;
-            margin-top: 30px;
-        }
-        
-        .insights-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #1e40af;
-        }
-        
-        .insights-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 20px;
-        }
-        
-        .insight-section h4 {
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #1f2937;
-        }
-        
-        .insight-list {
-            list-style: none;
-            space-y: 10px;
-        }
-        
-        .insight-list li {
-            padding: 8px 0;
-            color: #4b5563;
-            line-height: 1.5;
-        }
-        
-        .assessment {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 15px;
-            border-left: 5px solid #3b82f6;
-        }
-        
-        .assessment h4 {
-            color: #1e40af;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        
-        .assessment p {
-            color: #1e40af;
-            line-height: 1.6;
-        }
-        
-        @media (max-width: 768px) {
-            .player-name { font-size: 2rem; }
-            .performance-grid { grid-template-columns: 1fr; }
-            .insights-grid { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .content { padding: 20px; }
-        }
-        
-        .rank-badge {
-            display: inline-block;
-            background: #fbbf24;
-            color: #92400e;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.9rem;
+        #ron-insights ul {
+            list-style-type: disc;
+            padding-left: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <h1 class="player-name">Ron Unger</h1>
-                <div class="player-info">
-                    Right Back • Maccabi Bnei Raina • Age 23
-                    <br>
-                    <span class="rank-badge">Ranked #91</span>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-value">10</span>
-                        <span class="stat-label">Games</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">776</span>
-                        <span class="stat-label">Minutes</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">1.16</span>
-                        <span class="stat-label">Tackles/Game</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">25%</span>
-                        <span class="stat-label">Tackle Success</span>
-                    </div>
-                </div>
-            </div>
+        <h1>Defense Stats Interactive Scatter Plot</h1>
+        <p>Select two defensive stats from the dropdowns below to compare players. Click on a player point to see detailed info. The player <strong>Ron Unger</strong> is highlighted in gold star markers.</p>
+        <div id="controls">
+            X-axis:
+            <select id="x-axis-select">
+                <option value="GM">Games (GM)</option>
+                <option value="Min">Minutes (Min)</option>
+                <option value="Age">Age</option>
+                <option value="Tckl">Tackles/Game (Tckl)</option>
+                <option value="Tackle%">Tackle Success %</option>
+                <option value="Clrnce">Clearances/Game (Clrnce)</option>
+                <option value="Int">Interceptions/Game (Int)</option>
+                <option value="ShtBlk">Shots Blocked/Game (ShtBlk)</option>
+                <option value="Duels">Duels/Game (Duels)</option>
+                <option value="Duel%">Duel Win %</option>
+                <option value="Aerials">Aerials/Game (Aerials)</option>
+                <option value="Aerial%">Aerial Win %</option>
+                <option value="Recovery">Recoveries/Game</option>
+                <option value="ErrShot">Errors (ErrShot)</option>
+                <option value="CrossBlkd">Crosses Blocked</option>
+            </select>
+            Y-axis:
+            <select id="y-axis-select">
+                <option value="GM">Games (GM)</option>
+                <option value="Min">Minutes (Min)</option>
+                <option value="Age">Age</option>
+                <option value="Tckl">Tackles/Game (Tckl)</option>
+                <option value="Tackle%">Tackle Success %</option>
+                <option value="Clrnce">Clearances/Game (Clrnce)</option>
+                <option value="Int">Interceptions/Game (Int)</option>
+                <option value="ShtBlk">Shots Blocked/Game (ShtBlk)</option>
+                <option value="Duels">Duels/Game (Duels)</option>
+                <option value="Duel%">Duel Win %</option>
+                <option value="Aerials">Aerials/Game (Aerials)</option>
+                <option value="Aerial%">Aerial Win %</option>
+                <option value="Recovery">Recoveries/Game</option>
+                <option value="ErrShot">Errors (ErrShot)</option>
+                <option value="CrossBlkd">Crosses Blocked</option>
+            </select>
         </div>
-        
-        <div class="content">
-            <div class="tabs">
-                <button class="tab active" onclick="showTab('overview')">Overview</button>
-                <button class="tab" onclick="showTab('comparison')">Comparison</button>
-                <button class="tab" onclick="showTab('radar')">Performance Radar</button>
-            </div>
-            
-            <div id="overview" class="tab-content active">
-                <div class="performance-grid">
-                    <div class="performance-card strengths">
-                        <div class="performance-title">
-                            📈 Strengths
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon positive">🎯</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Interceptions</div>
-                                <div class="performance-value">1.39 per game (Above average)</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon positive">✈️</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Aerial Duels</div>
-                                <div class="performance-value">52.9% success rate</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon positive">🛡️</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Error-Free</div>
-                                <div class="performance-value">0 errors leading to shots</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon neutral">🧹</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Clearances</div>
-                                <div class="performance-value">2.32 per game (League average)</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="performance-card weaknesses">
-                        <div class="performance-title">
-                            📉 Areas for Improvement
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon negative">⚠️</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Tackle Success Rate</div>
-                                <div class="performance-value">Only 25% (Very low)</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon negative">📉</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Tackles Per Game</div>
-                                <div class="performance-value">1.16 (Well below average)</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon negative">🔄</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Ball Recovery</div>
-                                <div class="performance-value">3.60 per game (Below average)</div>
-                            </div>
-                        </div>
-                        <div class="performance-item">
-                            <div class="icon negative">⚡</div>
-                            <div class="performance-text">
-                                <div class="performance-metric">Overall Duel Success</div>
-                                <div class="performance-value">48.7% (Below average)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="comparison" class="tab-content">
-                <div class="chart-container">
-                    <div class="chart-title">Performance vs League Average</div>
-                    <canvas id="comparisonChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-            
-            <div id="radar" class="tab-content">
-                <div class="chart-container">
-                    <div class="chart-title">Defensive Performance Radar (Percentiles)</div>
-                    <canvas id="radarChart" width="400" height="400"></canvas>
-                    <p style="text-align: center; color: #6b7280; margin-top: 15px;">
-                        *Values represent percentile ranking among all defensive players (0-100)
-                    </p>
-                </div>
-            </div>
-            
-            <div class="insights">
-                <div class="insights-title">Key Insights & Recommendations</div>
-                <div class="insights-grid">
-                    <div class="insight-section">
-                        <h4>Playing Style Analysis</h4>
-                        <ul class="insight-list">
-                            <li>• More of a positional defender who relies on reading the game</li>
-                            <li>• Struggles in direct confrontations (low tackle success)</li>
-                            <li>• Good at anticipating play (decent interception rate)</li>
-                            <li>• Reliable in the air for his position</li>
-                        </ul>
-                    </div>
-                    <div class="insight-section">
-                        <h4>Development Areas</h4>
-                        <ul class="insight-list">
-                            <li>• Focus on tackle technique and timing</li>
-                            <li>• Improve aggressive defensive actions</li>
-                            <li>• Work on ball recovery after defensive actions</li>
-                            <li>• Increase overall defensive intensity</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="assessment">
-                    <h4>Overall Assessment</h4>
-                    <p>
-                        Ron Unger appears to be a young right-back who relies more on positioning and anticipation than aggressive defensive play. 
-                        While he shows promise in certain areas like interceptions and aerial duels, his low tackle success rate suggests he may 
-                        struggle in high-intensity defensive situations. At 23, there's significant room for improvement in his defensive fundamentals.
-                    </p>
-                </div>
-            </div>
+        <div id="chart"></div>
+        <div id="info"><h3>Player Info</h3><p>Click on a point to see details here.</p></div>
+        <div id="ron-insights">
+            <h2>Ron Unger Insights</h2>
+            <ul>
+                <li><strong>Position:</strong> Right Back; <strong>Games:</strong> 10; <strong>Minutes:</strong> 776; <strong>Age:</strong> 23</li>
+                <li><strong>Tackles/Game:</strong> 1.16; <strong>Tackle Success:</strong> 25.0% (among lowest in dataset)</li>
+                <li><strong>Clearances/Game:</strong> 2.32 (around average); <strong>Interceptions/Game:</strong> 1.39 (slightly above average)</li>
+                <li><strong>Aerial Win %:</strong> 52.9% (wins more than half his aerial duels)</li>
+                <li><strong>Recoveries/Game:</strong> 3.60; <strong>Errors:</strong> 0 (no recorded errors)</li>
+                <li><strong>Crosses Blocked/Game:</strong> 0.12 (low)</li>
+            </ul>
         </div>
     </div>
-
     <script>
-        function showTab(tabName) {
-            // Hide all tab contents
-            const contents = document.querySelectorAll('.tab-content');
-            contents.forEach(content => content.classList.remove('active'));
-            
-            // Remove active class from all tabs
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            
-            // Show selected tab content
-            document.getElementById(tabName).classList.add('active');
-            
-            // Add active class to clicked tab
-            event.target.classList.add('active');
-            
-            // Initialize charts when their tabs are shown
-            if (tabName === 'comparison') {
-                initComparisonChart();
-            } else if (tabName === 'radar') {
-                initRadarChart();
-            }
-        }
-        
-        function initComparisonChart() {
-            const ctx = document.getElementById('comparisonChart').getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (window.comparisonChart) {
-                window.comparisonChart.destroy();
-            }
-            
-            window.comparisonChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Tackles/Game', 'Tackle %', 'Clearances', 'Interceptions', 'Duels Won %', 'Aerial %', 'Recovery'],
-                    datasets: [{
-                        label: 'Ron Unger',
-                        data: [1.16, 25.0, 2.32, 1.39, 48.7, 52.9, 3.60],
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 2
-                    }, {
-                        label: 'League Average',
-                        data: [2.05, 45.8, 2.31, 1.22, 52.1, 50.2, 4.12],
-                        backgroundColor: 'rgba(148, 163, 184, 0.8)',
-                        borderColor: 'rgba(148, 163, 184, 1)',
-                        borderWidth: 2
-                    }]
+        // Convert CSV data to a JavaScript array of player objects (embedded from the file)
+        const players = /* CSV data as JSON array */ { /* ...player objects... */ };
+
+        function drawChart(xStat, yStat) {
+            // Extract values for the selected stats
+            const xValues = players.map(p => p[xStat]);
+            const yValues = players.map(p => p[yStat]);
+            // Marker style: gold star for Ron Unger, blue circle for others
+            const markerColors = players.map(p => 
+                (p.firstName === "Ron" && p.lastName === "Unger") ? 'gold' : 'steelblue'
+            );
+            const markerSizes = players.map(p =>
+                (p.firstName === "Ron" && p.lastName === "Unger") ? 15 : 8
+            );
+            const markerSymbols = players.map(p =>
+                (p.firstName === "Ron" && p.lastName === "Unger") ? 'star' : 'circle'
+            );
+            // Create Plotly scatter trace
+            const trace = {
+                x: xValues,
+                y: yValues,
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    color: markerColors,
+                    size: markerSizes,
+                    symbol: markerSymbols,
+                    line: { width: 1, color: '#333' }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
+                text: players.map(p => p.firstName + " " + p.lastName),
+                hovertemplate: '%{text}<br>' + xStat + ': %{x}<br>' + yStat + ': %{y}<extra></extra>'
+            };
+            const layout = {
+                title: `Player ${yStat} vs ${xStat}`,
+                xaxis: { title: xStat },
+                yaxis: { title: yStat }
+            };
+            Plotly.newPlot('chart', [trace], layout);
         }
-        
-        function initRadarChart() {
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (window.radarChart) {
-                window.radarChart.destroy();
-            }
-            
-            window.radarChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Tackling', 'Clearances', 'Interceptions', 'Duels', 'Aerials', 'Recovery'],
-                    datasets: [{
-                        label: 'Ron Unger',
-                        data: [25, 50, 65, 35, 55, 25],
-                        backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 3,
-                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                stepSize: 20
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Initialize comparison chart by default
-        setTimeout(initComparisonChart, 100);
+
+        // Initial plot with default axes
+        drawChart('GM', 'Tckl');
+
+        // Redraw chart when dropdowns change
+        document.getElementById('x-axis-select').addEventListener('change', () => {
+            drawChart(
+                document.getElementById('x-axis-select').value,
+                document.getElementById('y-axis-select').value
+            );
+        });
+        document.getElementById('y-axis-select').addEventListener('change', () => {
+            drawChart(
+                document.getElementById('x-axis-select').value,
+                document.getElementById('y-axis-select').value
+            );
+        });
+
+        // Show player info when a point is clicked
+        document.getElementById('chart').on('plotly_click', function(data) {
+            const point = data.points[0];
+            const idx = point.pointIndex;
+            const player = players[idx];
+            // Populate the info panel with all stats for this player
+            document.getElementById('info').innerHTML = `
+                <h3>${player.firstName} ${player.lastName}</h3>
+                <p><strong>Position:</strong> ${player.Position}</p>
+                <p><strong>Games (GM):</strong> ${player.GM}</p>
+                <p><strong>Minutes:</strong> ${player.Min}</p>
+                <p><strong>Age:</strong> ${player.Age}</p>
+                <p><strong>Tackles/Game:</strong> ${player.Tckl}</p>
+                <p><strong>Tackle Success %:</strong> ${player["Tackle%"]}%</p>
+                <p><strong>Clearances/Game:</strong> ${player.Clrnce}</p>
+                <p><strong>Interceptions/Game:</strong> ${player.Int}</p>
+                <p><strong>Shots Blocked/Game:</strong> ${player.ShtBlk}</p>
+                <p><strong>Duels/Game:</strong> ${player.Duels}</p>
+                <p><strong>Duel Win %:</strong> ${player["Duel%"]}%</p>
+                <p><strong>Aerials/Game:</strong> ${player.Aerials}</p>
+                <p><strong>Aerial Win %:</strong> ${player["Aerial%"]}%</p>
+                <p><strong>Recoveries/Game:</strong> ${player.Recovery}</p>
+                <p><strong>Errors (ErrShot):</strong> ${player.ErrShot}</p>
+                <p><strong>Crosses Blocked:</strong> ${player.CrossBlkd}</p>
+            `;
+        });
     </script>
 </body>
 </html>
